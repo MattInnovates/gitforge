@@ -1,6 +1,9 @@
 package events
 
+import "time"
+
 type Event struct {
-	Name string
-	Payload interface{}
+	Name      string
+	Timestamp time.Time
+	Payload   interface{}
 }

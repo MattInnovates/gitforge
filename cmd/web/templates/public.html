@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GitForge Public</title>
+    <link rel="stylesheet" href="/assets/css/public.css" />
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/">GitForge</a>
+            <nav class="site-nav">
+                <a class="active" href="/">Explore</a>
+                <a href="/admin">Admin</a>
+                <a href="/webmaster">Webmaster</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container explore-layout">
+        <section class="explore-intro">
+            <p class="kicker">Public Explorer</p>
+            <h1>Discover repositories by owner</h1>
+            <p>Search for a user account, open repository pages, and copy clone URLs directly from one clear view.</p>
+        </section>
+
+        {{if .Error}}
+        <section class="flash flash-error">{{.Error}}</section>
+        {{end}}
+
+        <section class="surface">
+            <form class="owner-form" method="get" action="/">
+                <label for="ownerInput">Owner username</label>
+                <div class="owner-row">
+                    <input id="ownerInput" name="owner" value="{{.OwnerFilter}}" placeholder="e.g. MattInnovates" required />
+                    <button type="submit">Search</button>
+                </div>
+            </form>
+
+            <div class="section-head">
+                <h2>Repositories</h2>
+                <p>{{if .OwnerFilter}}Results for {{.OwnerFilter}}{{else}}Search by owner to load repositories{{end}}</p>
+            </div>
+
+            <div class="repo-list">
+                {{if .Repos}}
+                {{range .Repos}}
+                <article class="repo-item">
+                    <div class="repo-main">
+                        <h3><a href="{{.RepoURL}}">{{.OwnerName}}/{{.Name}}</a></h3>
+                        <p>{{if .Description}}{{.Description}}{{else}}No description provided.{{end}}</p>
+                        <div class="repo-meta">
+                            <span class="badge">{{.Visibility}}</span>
+                            <span>Default: {{.DefaultRef}}</span>
+                        </div>
+                    </div>
+                    <div class="owner-row">
+                        <a class="btn btn-primary" href="{{.RepoURL}}">Open</a>
+                        <a class="btn" href="{{.ProfileURL}}">Owner</a>
+                        <button type="button" class="btn btn-success copy-clone" data-clone-url="{{.HTTPClone}}">Copy HTTPS</button>
+                        <button type="button" class="btn copy-clone" data-clone-url="{{.SSHClone}}">Copy SSH</button>
+                    </div>
+                </article>
+                {{end}}
+                {{else}}
+                <p class="empty">No repositories to show yet. Search by owner to explore projects.</p>
+                {{end}}
+                </div>
+        </section>
+    </main>
+
+    <script src="/assets/js/public.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{.User.Username}} - GitForge</title>
+    <link rel="stylesheet" href="/assets/css/profile.css" />
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/">GitForge</a>
+            <nav class="site-nav">
+                <a href="/">Explore</a>
+                <a class="active" href="/u/{{.User.Username}}">Profile</a>
+                <a href="/admin">Admin</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container profile-layout">
+        <aside class="profile-summary">
+            <div class="avatar">{{printf "%.1s" .User.Username}}</div>
+            <h1>{{.User.Username}}</h1>
+            <p class="muted">{{.User.Email}}</p>
+            <div class="metrics">
+                <div>
+                    <span class="metric-value">{{.RepoCount}}</span>
+                    <span class="metric-label">Repositories</span>
+                </div>
+            </div>
+        </aside>
+
+        <section class="profile-content">
+            {{if .Error}}
+            <div class="flash flash-error">{{.Error}}</div>
+            {{end}}
+
+            <div class="repo-head">
+                <h2>Repositories</h2>
+                <form method="get" action="/">
+                    <input name="owner" value="{{.User.Username}}" type="hidden" />
+                    <button type="submit" class="btn">Open In Explorer</button>
+                </form>
+            </div>
+
+            <div class="repo-list">
+                {{if .Repos}}
+                {{range .Repos}}
+                <article class="repo-item">
+                    <div class="repo-main">
+                        <h3><a class="repo-name" href="{{.RepoURL}}">{{.OwnerName}}/{{.Name}}</a></h3>
+                        <p>{{if .Description}}{{.Description}}{{else}}No description provided.{{end}}</p>
+                        <div class="meta">
+                            <span class="badge">{{.Visibility}}</span>
+                            <span>Default: {{.DefaultRef}}</span>
+                        </div>
+                    </div>
+                    <div class="repo-actions">
+                        <a class="btn btn-primary" href="{{.RepoURL}}">Open</a>
+                        <button type="button" class="btn btn-success copy-clone" data-clone-url="{{.HTTPClone}}">Copy HTTPS</button>
+                        <button type="button" class="btn copy-clone" data-clone-url="{{.SSHClone}}">Copy SSH</button>
+                    </div>
+                </article>
+                {{end}}
+                {{else}}
+                <p class="empty">No repositories yet.</p>
+                {{end}}
+            </div>
+        </section>
+    </main>
+
+    <script src="/assets/js/repo.js"></script>
+</body>
+
+</html>

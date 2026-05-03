@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>GitForge {{.AreaLabel}}</title>
+    <link rel="stylesheet" href="/assets/css/admin.css" />
+</head>
+
+<body>
+    <header class="site-header">
+        <div class="container header-inner">
+            <a class="brand" href="/">GitForge</a>
+            <nav class="site-nav">
+                <a href="/">Public Home</a>
+                <a class="active" href="{{.BasePath}}">{{.AreaLabel}}</a>
+                <a href="/api/healthz" target="_blank" rel="noopener">API Health</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container dashboard">
+        <header class="page-head">
+            <p class="kicker">{{.AreaLabel}} Panel</p>
+            <div>
+                <h1>{{.AreaLabel}} Workspace</h1>
+                <p>Operational backend for account and repository provisioning.</p>
+            </div>
+        </header>
+
+        {{if .Error}}
+        <section class="flash flash-error">{{.Error}}</section>
+        {{end}}
+
+        <section class="forms-grid">
+            <article class="surface">
+                <h2>Create User</h2>
+                <form method="post" action="{{.BasePath}}/users">
+                    <label>Username</label>
+                    <input name="username" required />
+
+                    <label>Email</label>
+                    <input name="email" type="email" required />
+
+                    <label>Password</label>
+                    <input name="password" type="password" required />
+
+                    <button type="submit" class="btn btn-primary">Create User</button>
+                </form>
+            </article>
+
+            <article class="surface">
+                <h2>Create Repository</h2>
+                <form method="post" action="{{.BasePath}}/repos">
+                    <label>Owner Username</label>
+                    <input name="owner" value="{{.OwnerFilter}}" required />
+
+                    <label>Repository Name</label>
+                    <input name="name" required />
+
+                    <label>Description</label>
+                    <input name="description" />
+
+                    <label>Visibility</label>
+                    <select name="visibility">
+                        <option value="private">private</option>
+                        <option value="public">public</option>
+                    </select>
+
+                    <button type="submit" class="btn btn-primary">Create Repository</button>
+                </form>
+            </article>
+        </section>
+
+        <section class="surface">
+            <div class="table-head">
+                <h2>Repositories</h2>
+                <form class="owner-filter" method="get" action="{{.BasePath}}">
+                    <label for="adminOwnerInput">Filter owner</label>
+                    <div class="owner-row">
+                        <input id="adminOwnerInput" name="owner" value="{{.OwnerFilter}}" required />
+                        <button type="submit" class="btn">Load</button>
+                    </div>
+                </form>
+            </div>
+
+            {{if .Repos}}
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Repository</th>
+                            <th>Visibility</th>
+                            <th>Default Ref</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .Repos}}
+                        <tr>
+                            <td>{{.OwnerName}}/{{.Name}}</td>
+                            <td><span class="badge">{{.Visibility}}</span></td>
+                            <td>{{.DefaultRef}}</td>
+                            <td class="repo-actions-cell">
+                                <a href="{{.RepoURL}}">Repo</a>
+                                <a href="{{.ProfileURL}}">Profile</a>
+                                <a href="{{.APIURL}}" target="_blank" rel="noopener">API</a>
+                                <button type="button" class="copy-clone btn-success" data-clone-url="{{.HTTPClone}}">Copy HTTPS</button>
+                                <button type="button" class="copy-clone" data-clone-url="{{.SSHClone}}">Copy SSH</button>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+            {{else}}
+            <p class="empty">No repositories loaded.</p>
+            {{end}}
+        </section>
+    </main>
+
+    <script src="/assets/js/admin.js"></script>
+</body>
+
+</html>
