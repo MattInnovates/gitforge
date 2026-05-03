@@ -30,6 +30,13 @@
         {{if .Error}}
         <section class="flash flash-error">{{.Error}}</section>
         {{end}}
+        {{if .OwnerMissing}}
+        <section class="surface" style="padding:12px 14px; margin-bottom:12px;">
+            <strong>Quick fix:</strong>
+            <a class="btn" href="/admin?owner={{.OwnerFilter}}">Open Admin</a>
+            <a class="btn" href="/webmaster?owner={{.OwnerFilter}}">Open Webmaster</a>
+        </section>
+        {{end}}
 
         <section class="surface">
             <form class="owner-form" method="get" action="/">
@@ -66,7 +73,15 @@
                 </article>
                 {{end}}
                 {{else}}
+                {{if .OwnerExists}}
+                <p class="empty">Owner found, but no repositories yet.</p>
+                <p class="empty">
+                    <a class="btn" href="{{.OwnerProfileURL}}">Open Profile</a>
+                    <a class="btn btn-primary" href="/admin?owner={{.OwnerFilter}}">Create Repository</a>
+                </p>
+                {{else}}
                 <p class="empty">No repositories to show yet. Search by owner to explore projects.</p>
+                {{end}}
                 {{end}}
                 </div>
         </section>

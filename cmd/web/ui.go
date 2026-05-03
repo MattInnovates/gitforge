@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net"
@@ -44,6 +45,9 @@ type repoView struct {
 type homeData struct {
 	OwnerFilter string
 	Error       string
+	OwnerMissing bool
+	OwnerExists bool
+	OwnerProfileURL string
 	Repos       []repoView
 	AreaLabel   string
 	BasePath    string
@@ -164,6 +168,23 @@ func (s *uiServer) handlePublicHome(w http.ResponseWriter, r *http.Request) {
 	data := homeData{OwnerFilter: owner, Error: uiErrorMessage(errCode), AreaLabel: "Public", BasePath: "/"}
 
 	if owner != "" {
+		ownerEscaped := url.PathEscape(owner)
+		data.OwnerProfileURL = "/u/" + ownerEscaped
+		if _, err := s.users.GetByUsername(r.Context(), owner); err != nil {
+			if errors.Is(err, repositories.ErrNotFound) {
+				data.Error = "Owner not found. Create the user first from Admin or Webmaster."
+				data.OwnerMissing = true
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				_ = s.publicTmpl.Execute(w, data)
+				return
+			}
+			data.Error = "failed to load owner"
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			_ = s.publicTmpl.Execute(w, data)
+			return
+		}
+		data.OwnerExists = true
+
 		repos, err := s.repos.ListByOwner(r.Context(), owner)
 		if err != nil {
 			data.Error = "failed to load repositories"
