@@ -12,96 +12,94 @@
     <header class="site-header">
         <div class="container header-inner">
             <a class="brand" href="/">GitForge</a>
-            <nav class="site-nav">
+            <nav class="site-nav" aria-label="Primary">
                 <a href="/">Explore</a>
-                <a href="{{.Repo.ProfileURL}}">Owner Profile</a>
+                <a href="{{.Repo.ProfileURL}}">Owner</a>
                 <a href="/admin">Admin</a>
             </nav>
         </div>
     </header>
 
     <main class="container page-wrap">
-        <section class="repo-title-row">
-            <div class="repo-title">
-                <a href="{{.Repo.ProfileURL}}">{{.Repo.OwnerName}}</a>
-                <span>/</span>
-                <strong>{{.Repo.Name}}</strong>
-                <span class="badge">{{.Repo.Visibility}}</span>
+        <section class="repo-hero surface">
+            <div class="hero-main">
+                <p class="eyebrow">Repository</p>
+                <h1>
+                    <a href="{{.Repo.ProfileURL}}">{{.Repo.OwnerName}}</a>
+                    <span>/</span>
+                    <strong>{{.Repo.Name}}</strong>
+                </h1>
+                <p class="description">{{if .Repo.Description}}{{.Repo.Description}}{{else}}No description provided yet.{{end}}</p>
             </div>
-            <div class="repo-top-actions">
-                <button type="button" class="btn">Watch <span>0</span></button>
-                <button type="button" class="btn">Fork <span>0</span></button>
-                <button type="button" class="btn btn-success">Star <span>0</span></button>
+            <div class="hero-meta">
+                <span class="badge">{{.Repo.Visibility}}</span>
+                <span class="branch-chip">{{.Repo.DefaultRef}}</span>
             </div>
         </section>
 
-        <nav class="repo-tabs">
-            <a class="active" href="{{.Repo.RepoURL}}">Code</a>
-            <a href="#">Issues</a>
-            <a href="#">Pull requests</a>
-            <a href="#">Actions</a>
-            <a href="#">Projects</a>
-            <a href="#">Security</a>
-            <a href="#">Insights</a>
-        </nav>
+        {{if .Error}}
+        <div class="flash flash-error">{{.Error}}</div>
+        {{end}}
 
         <section class="repo-layout">
             <section class="repo-main">
-            {{if .Error}}
-            <div class="flash flash-error">{{.Error}}</div>
-            {{end}}
+                <section class="surface panel clone-panel" aria-labelledby="clone-heading">
+                    <div class="panel-head">
+                        <h2 id="clone-heading">Clone</h2>
+                        <p>Use HTTPS or SSH to clone this repository.</p>
+                    </div>
+                    <div class="clone-row">
+                        <label for="clone-https">HTTPS</label>
+                        <div class="clone-field">
+                            <input id="clone-https" readonly value="{{.Repo.HTTPClone}}" />
+                            <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.HTTPClone}}">Copy</button>
+                        </div>
+                    </div>
+                    <div class="clone-row">
+                        <label for="clone-ssh">SSH</label>
+                        <div class="clone-field">
+                            <input id="clone-ssh" readonly value="{{.Repo.SSHClone}}" />
+                            <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.SSHClone}}">Copy</button>
+                        </div>
+                    </div>
+                </section>
 
-            <div class="branch-bar surface">
-                <div class="branch-pill">{{.Repo.DefaultRef}}</div>
-                <div class="branch-meta">Latest commit information is not available yet.</div>
-            </div>
-
-            <div class="clone-panel surface">
-                <h3>Code</h3>
-                <div class="clone-row">
-                    <input readonly value="{{.Repo.HTTPClone}}" />
-                    <button type="button" class="btn btn-success copy-clone" data-clone-url="{{.Repo.HTTPClone}}">Copy HTTPS</button>
-                </div>
-                <div class="clone-row">
-                    <input readonly value="{{.Repo.SSHClone}}" />
-                    <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.SSHClone}}">Copy SSH</button>
-                </div>
-            </div>
-
-            <div class="readme-card surface">
-                <div class="readme-head">
-                    <strong>README</strong>
-                </div>
-                <div class="readme-content">
-                    <h1>{{.Repo.Name}}</h1>
-                    <p>{{if .Repo.Description}}{{.Repo.Description}}{{else}}No description provided yet.{{end}}</p>
-                    <p>This repository is hosted on GitForge and ready for clone and API access.</p>
-                </div>
-            </div>
+                <section class="surface panel readme-card" aria-labelledby="readme-heading">
+                    <div class="panel-head readme-head">
+                        <h2 id="readme-heading">README</h2>
+                    </div>
+                    <div class="readme-content">
+                        <h3>{{.Repo.Name}}</h3>
+                        <p>{{if .Repo.Description}}{{.Repo.Description}}{{else}}No description provided yet.{{end}}</p>
+                        <p>This repository is hosted on GitForge and ready for clone and API access.</p>
+                    </div>
+                </section>
             </section>
 
             <aside class="repo-side">
-                <section class="surface side-card">
-                    <h3>About</h3>
-                    <p>{{if .Repo.Description}}{{.Repo.Description}}{{else}}No description, website, or topics provided.{{end}}</p>
-                    <ul>
-                        <li><a href="{{.Repo.APIURL}}" target="_blank" rel="noopener">JSON API details</a></li>
-                        <li><a href="{{.Repo.ProfileURL}}">Owner profile</a></li>
-                        <li>Default branch: {{.Repo.DefaultRef}}</li>
+                <section class="surface panel side-card" aria-labelledby="about-heading">
+                    <div class="panel-head">
+                        <h2 id="about-heading">About</h2>
+                    </div>
+                    <ul class="meta-list">
+                        <li><span>Default branch</span><strong>{{.Repo.DefaultRef}}</strong></li>
+                        <li><span>Visibility</span><strong>{{.Repo.Visibility}}</strong></li>
+                        <li><span>Owner</span><a href="{{.Repo.ProfileURL}}">{{.Repo.OwnerName}}</a></li>
+                        <li><span>API</span><a href="{{.Repo.APIURL}}" target="_blank" rel="noopener">View JSON</a></li>
                     </ul>
                 </section>
 
-                <section class="surface side-card">
-                    <h3>Other Repositories</h3>
-                {{if .OtherRepos}}
-                <ul>
-                    {{range .OtherRepos}}
-                    <li>
-                        <a href="{{.RepoURL}}">{{.Name}}</a>
-                    </li>
-                    {{end}}
-                </ul>
-                {{else}}
+                <section class="surface panel side-card" aria-labelledby="related-heading">
+                    <div class="panel-head">
+                        <h2 id="related-heading">Other Repositories</h2>
+                    </div>
+                    {{if .OtherRepos}}
+                    <ul class="repo-list">
+                        {{range .OtherRepos}}
+                        <li><a href="{{.RepoURL}}">{{.Name}}</a></li>
+                        {{end}}
+                    </ul>
+                    {{else}}
                     <p class="empty">No other repositories from this owner.</p>
                     {{end}}
                 </section>

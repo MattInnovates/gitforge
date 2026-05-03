@@ -149,6 +149,28 @@ func TestRepoPageRenders(t *testing.T) {
 	}
 }
 
+func TestPublicSearchAndRepoLoadAreCaseInsensitive(t *testing.T) {
+	h := newWebTestHandler(t)
+	seedUserAndRepo(t, h, "owner4", "owner4@example.com", "projectx")
+
+	searchReq := httptest.NewRequest(http.MethodGet, "/?owner=OWNER4", nil)
+	searchRec := httptest.NewRecorder()
+	h.ServeHTTP(searchRec, searchReq)
+	if searchRec.Code != http.StatusOK {
+		t.Fatalf("expected search status %d got %d", http.StatusOK, searchRec.Code)
+	}
+	if !strings.Contains(searchRec.Body.String(), "owner4/projectx") {
+		t.Fatalf("expected case-insensitive owner search to list repository")
+	}
+
+	repoReq := httptest.NewRequest(http.MethodGet, "/u/OWNER4/PROJECTX", nil)
+	repoRec := httptest.NewRecorder()
+	h.ServeHTTP(repoRec, repoReq)
+	if repoRec.Code != http.StatusOK {
+		t.Fatalf("expected repo status %d got %d", http.StatusOK, repoRec.Code)
+	}
+}
+
 func TestProfileAndRepoNotFound(t *testing.T) {
 	h := newWebTestHandler(t)
 

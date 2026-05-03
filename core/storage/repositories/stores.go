@@ -101,7 +101,7 @@ func (s *SQLiteUserStore) GetByUsername(ctx context.Context, username string) (d
 	err := s.db.QueryRowContext(ctx,
 		`SELECT id, username, email, password_hash, created_at, updated_at
 		 FROM users
-		 WHERE username = ?`,
+		 WHERE username = ? COLLATE NOCASE`,
 		username,
 	).Scan(
 		&user.ID,
@@ -166,7 +166,7 @@ func (s *SQLiteRepositoryStore) GetByOwnerAndName(ctx context.Context, ownerName
 		`SELECT r.id, r.owner_id, u.username, r.name, r.description, r.visibility, r.default_ref, r.created_at, r.updated_at
 		 FROM repositories r
 		 INNER JOIN users u ON u.id = r.owner_id
-		 WHERE u.username = ? AND r.name = ?`,
+		 WHERE u.username = ? COLLATE NOCASE AND r.name = ? COLLATE NOCASE`,
 		ownerName,
 		repoName,
 	).Scan(
@@ -195,7 +195,7 @@ func (s *SQLiteRepositoryStore) ListByOwner(ctx context.Context, ownerName strin
 		`SELECT r.id, r.owner_id, u.username, r.name, r.description, r.visibility, r.default_ref, r.created_at, r.updated_at
 		 FROM repositories r
 		 INNER JOIN users u ON u.id = r.owner_id
-		 WHERE u.username = ?
+		 WHERE u.username = ? COLLATE NOCASE
 		 ORDER BY r.name ASC`,
 		ownerName,
 	)
