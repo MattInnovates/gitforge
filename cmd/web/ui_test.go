@@ -28,7 +28,7 @@ func newWebTestHandler(t *testing.T) http.Handler {
 	users := repositories.NewSQLiteUserStore(db)
 	repos := repositories.NewSQLiteRepositoryStore(db)
 	authService := auth.NewService("test-secret", time.Hour)
-	return NewUIHandler(users, repos, authService, 8080, 2222)
+	return NewUIHandler(users, repos, authService, 8080, 2222, t.TempDir())
 }
 
 func TestHomePageRenders(t *testing.T) {

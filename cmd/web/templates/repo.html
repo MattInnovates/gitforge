@@ -43,36 +43,64 @@
 
         <section class="repo-layout">
             <section class="repo-main">
-                <section class="surface panel clone-panel" aria-labelledby="clone-heading">
-                    <div class="panel-head">
-                        <h2 id="clone-heading">Clone</h2>
-                        <p>Use HTTPS or SSH to clone this repository.</p>
-                    </div>
-                    <div class="clone-row">
-                        <label for="clone-https">HTTPS</label>
-                        <div class="clone-field">
-                            <input id="clone-https" readonly value="{{.Repo.HTTPClone}}" />
-                            <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.HTTPClone}}">Copy</button>
-                        </div>
-                    </div>
-                    <div class="clone-row">
-                        <label for="clone-ssh">SSH</label>
-                        <div class="clone-field">
-                            <input id="clone-ssh" readonly value="{{.Repo.SSHClone}}" />
-                            <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.SSHClone}}">Copy</button>
-                        </div>
+                <section class="surface repo-toolbar" aria-label="Repository toolbar">
+                    <div class="branch-select">{{.Repo.DefaultRef}}</div>
+                    <div class="toolbar-actions">
+                        <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.HTTPClone}}">Copy HTTPS</button>
+                        <button type="button" class="btn copy-clone" data-clone-url="{{.Repo.SSHClone}}">Copy SSH</button>
                     </div>
                 </section>
 
-                <section class="surface panel readme-card" aria-labelledby="readme-heading">
+                <section class="surface code-card" aria-labelledby="code-heading">
+                    <div class="code-head">
+                        <h2 id="code-heading">Files</h2>
+                    </div>
+                    {{if .HasCommits}}
+                    <ul class="file-list">
+                        {{if .InSubdir}}
+                        <li>
+                            <span class="file-icon">&bull;</span>
+                            <a href="{{.Repo.RepoURL}}{{if .ParentPath}}?path={{.ParentPath}}{{end}}">..</a>
+                        </li>
+                        {{end}}
+                        {{if .FileEntries}}
+                        {{range .FileEntries}}
+                        <li>
+                            <span class="file-icon">{{if .IsDir}}?{{else}}•{{end}}</span>
+                            <a href="{{$.Repo.RepoURL}}?path={{.Path}}">{{.Name}}</a>
+                        </li>
+                        {{end}}
+                        {{else}}
+                        <li><span class="file-icon">•</span><span>No files in latest commit.</span></li>
+                        {{end}}
+                    </ul>
+                    {{else}}
+                    <div class="empty-state">No commits yet. Push code to this repository to see files.</div>
+                    {{end}}
+                </section>
+
+                {{if .SelectedIsFile}}
+                <section class="surface panel readme-card" aria-labelledby="source-heading">
                     <div class="panel-head readme-head">
-                        <h2 id="readme-heading">README</h2>
+                        <h2 id="source-heading">{{.SelectedFile}}</h2>
                     </div>
                     <div class="readme-content">
-                        <h3>{{.Repo.Name}}</h3>
-                        <p>{{if .Repo.Description}}{{.Repo.Description}}{{else}}No description provided yet.{{end}}</p>
-                        <p>This repository is hosted on GitForge and ready for clone and API access.</p>
+                        <pre>{{.SelectedContent}}</pre>
                     </div>
+                </section>
+                {{end}}
+
+                <section class="surface panel readme-card" aria-labelledby="readme-heading">
+                    <div class="panel-head readme-head">
+                        <h2 id="readme-heading">README.md</h2>
+                    </div>
+                    {{if .ReadmeAvailable}}
+                    <div class="readme-content">
+                        <pre>{{.ReadmeContent}}</pre>
+                    </div>
+                    {{else}}
+                    <div class="empty-state">No README found on the latest commit.</div>
+                    {{end}}
                 </section>
             </section>
 

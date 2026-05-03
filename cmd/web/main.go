@@ -30,7 +30,7 @@ func main() {
 	repoStore := repositories.NewSQLiteRepositoryStore(db)
 	authService := auth.NewService(cfg.AuthTokenSecret, time.Duration(cfg.AuthTokenTTLMinutes)*time.Minute)
 	apiHandler := api.SetupRoutes(userStore, repoStore, authService)
-	uiHandler := NewUIHandler(userStore, repoStore, authService, cfg.GitHTTPPort, cfg.GitSSHPort)
+	uiHandler := NewUIHandler(userStore, repoStore, authService, cfg.GitHTTPPort, cfg.GitSSHPort, cfg.ReposPath)
 
 	router := http.NewServeMux()
 	router.Handle("/api/", apiHandler)

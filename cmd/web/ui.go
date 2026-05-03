@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -22,6 +24,7 @@ type uiServer struct {
 	auth          *auth.Service
 	gitHTTPPort   int
 	gitSSHPort    int
+	reposPath     string
 	publicTmpl    *template.Template
 	profileTmpl   *template.Template
 	repoTmpl      *template.Template
@@ -43,14 +46,14 @@ type repoView struct {
 }
 
 type homeData struct {
-	OwnerFilter string
-	Error       string
-	OwnerMissing bool
-	OwnerExists bool
+	OwnerFilter     string
+	Error           string
+	OwnerMissing    bool
+	OwnerExists     bool
 	OwnerProfileURL string
-	Repos       []repoView
-	AreaLabel   string
-	BasePath    string
+	Repos           []repoView
+	AreaLabel       string
+	BasePath        string
 }
 
 type profileData struct {
@@ -62,12 +65,28 @@ type profileData struct {
 }
 
 type repoPageData struct {
-	Error      string
-	Repo       repoView
-	OtherRepos []repoView
+	Error           string
+	Repo            repoView
+	OtherRepos      []repoView
+	FileEntries     []repoFileEntry
+	HasCommits      bool
+	ReadmeAvailable bool
+	ReadmeContent   string
+	CurrentPath     string
+	SelectedFile    string
+	SelectedContent string
+	SelectedIsFile  bool
+	ParentPath      string
+	InSubdir        bool
 }
 
-func NewUIHandler(users repositories.UserStore, repos repositories.RepositoryStore, authService *auth.Service, gitHTTPPort int, gitSSHPort int) http.Handler {
+type repoFileEntry struct {
+	Name  string
+	Path  string
+	IsDir bool
+}
+
+func NewUIHandler(users repositories.UserStore, repos repositories.RepositoryStore, authService *auth.Service, gitHTTPPort int, gitSSHPort int, reposPath string) http.Handler {
 	publicTemplatePath, err := resolveWebPath(
 		filepath.Join("cmd", "web", "templates", "public.html"),
 		filepath.Join("templates", "public.html"),
@@ -114,6 +133,7 @@ func NewUIHandler(users repositories.UserStore, repos repositories.RepositorySto
 		auth:          authService,
 		gitHTTPPort:   gitHTTPPort,
 		gitSSHPort:    gitSSHPort,
+		reposPath:     reposPath,
 		publicTmpl:    template.Must(template.ParseFiles(publicTemplatePath)),
 		profileTmpl:   template.Must(template.ParseFiles(profileTemplatePath)),
 		repoTmpl:      template.Must(template.ParseFiles(repoTemplatePath)),
@@ -293,9 +313,134 @@ func (s *uiServer) handleRepoView(w http.ResponseWriter, r *http.Request, ownerR
 		Repo:       view,
 		OtherRepos: s.buildRepoViews(r, other),
 	}
+	currentPath := cleanRepoPath(r.URL.Query().Get("path"))
+	data.CurrentPath = currentPath
+	hasCommits, fileEntries, readmeContent, selectedContent, selectedIsFile := s.loadRepoContent(repo.OwnerName, repo.Name, currentPath)
+	data.HasCommits = hasCommits
+	data.FileEntries = fileEntries
+	data.SelectedIsFile = selectedIsFile
+	if selectedIsFile {
+		data.SelectedFile = path.Base(currentPath)
+		data.SelectedContent = selectedContent
+	}
+	if currentPath != "" {
+		data.InSubdir = true
+		parent := path.Dir(currentPath)
+		if parent == "." {
+			parent = ""
+		}
+		data.ParentPath = parent
+	}
+	if readmeContent != "" {
+		data.ReadmeAvailable = true
+		data.ReadmeContent = readmeContent
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_ = s.repoTmpl.Execute(w, data)
+}
+
+func (s *uiServer) loadRepoContent(ownerName, repoName, currentPath string) (bool, []repoFileEntry, string, string, bool) {
+	repoPath := filepath.Join(s.reposPath, ownerName, repoName+".git")
+	if _, err := os.Stat(repoPath); err != nil {
+		return false, nil, "", "", false
+	}
+
+	if _, err := s.runGit(repoPath, "rev-parse", "--verify", "HEAD"); err != nil {
+		return false, nil, "", "", false
+	}
+
+	treeSpec := "HEAD"
+	if currentPath != "" {
+		treeSpec = "HEAD:" + currentPath
+	}
+	filesOutput, treeErr := s.runGit(repoPath, "ls-tree", treeSpec)
+	selectedIsFile := false
+	selectedContent := ""
+	listPath := currentPath
+	if treeErr != nil && currentPath != "" {
+		objectType, typeErr := s.runGit(repoPath, "cat-file", "-t", "HEAD:"+currentPath)
+		if typeErr == nil && strings.TrimSpace(objectType) == "blob" {
+			selectedIsFile = true
+			selectedContent, _ = s.runGit(repoPath, "show", "HEAD:"+currentPath)
+			listPath = path.Dir(currentPath)
+			if listPath == "." {
+				listPath = ""
+			}
+			treeSpec = "HEAD"
+			if listPath != "" {
+				treeSpec = "HEAD:" + listPath
+			}
+			filesOutput, treeErr = s.runGit(repoPath, "ls-tree", treeSpec)
+		}
+	}
+	if treeErr != nil {
+		return true, nil, "", selectedContent, selectedIsFile
+	}
+
+	rawFiles := strings.Split(strings.ReplaceAll(filesOutput, "\r\n", "\n"), "\n")
+	fileEntries := make([]repoFileEntry, 0, len(rawFiles))
+	for _, item := range rawFiles {
+		line := strings.TrimSpace(item)
+		if line == "" {
+			continue
+		}
+		parts := strings.SplitN(line, "\t", 2)
+		if len(parts) != 2 {
+			continue
+		}
+		meta := strings.Fields(parts[0])
+		if len(meta) < 3 {
+			continue
+		}
+		name := strings.TrimSpace(parts[1])
+		if name == "" {
+			continue
+		}
+		childPath := name
+		if listPath != "" {
+			childPath = listPath + "/" + name
+		}
+		fileEntries = append(fileEntries, repoFileEntry{
+			Name:  name,
+			Path:  childPath,
+			IsDir: meta[1] == "tree",
+		})
+	}
+
+	readmeCandidates := []string{"README.md", "README.MD", "README"}
+	basePath := listPath
+	if selectedIsFile {
+		basePath = ""
+	}
+	for _, name := range readmeCandidates {
+		target := name
+		if basePath != "" {
+			target = basePath + "/" + name
+		}
+		readmeOutput, readmeErr := s.runGit(repoPath, "show", "HEAD:"+target)
+		if readmeErr == nil {
+			return true, fileEntries, strings.TrimSpace(readmeOutput), selectedContent, selectedIsFile
+		}
+	}
+	for _, name := range []string{"README.md", "README.MD", "README"} {
+		readmeOutput, readmeErr := s.runGit(repoPath, "show", "HEAD:"+name)
+		if readmeErr == nil {
+			return true, fileEntries, strings.TrimSpace(readmeOutput), selectedContent, selectedIsFile
+		}
+	}
+
+	return true, fileEntries, "", selectedContent, selectedIsFile
+}
+
+func (s *uiServer) runGit(repoPath string, args ...string) (string, error) {
+	cmdArgs := append([]string{"--git-dir", repoPath}, args...)
+	cmd := exec.Command("git", cmdArgs...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+	return string(output), nil
 }
 
 func (s *uiServer) handleAdminHome(w http.ResponseWriter, r *http.Request) {
@@ -481,4 +626,17 @@ func hostWithoutPort(host string) string {
 	}
 
 	return strings.Trim(host, "[]")
+}
+
+func cleanRepoPath(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+	cleaned := path.Clean("/" + trimmed)
+	cleaned = strings.TrimPrefix(cleaned, "/")
+	if cleaned == "." {
+		return ""
+	}
+	return cleaned
 }
